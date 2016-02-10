@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+    <!-- JS Libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.19/angular.min.js" type="text/javascript"></script>
+    <script src="http://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js" type="text/javascript"></script>
+    <!-- Angular Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0-rc.2/angular.min.js"></script>
+    <!-- Bootstrap -->
+    <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" />
+
+    <!-- minified js code-->
+    <script src="/Scripts/output.min.js" type="text/javascript"></script>
+
+
+</head>
+<body ng-app="myApp">
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                @Html.ActionLink("Application name", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li>@Html.ActionLink("Home", "Index", "Home", new { area = "" }, null)</li>
+                    <li>@Html.ActionLink("API", "Index", "Help", new { area = "" }, null)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="container body-content">
+        @RenderBody()
+        <hr />
+        <footer>
+            <p>&copy; @DateTime.Now.Year - My ASP.NET Application</p>
+        </footer>
+    </div>
+    <div class="container" ng-controller="testController">
+        Filter: <input type="text" ng-model="search.$">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th> 
+                        <div>
+                            <span class="click" ng-click="order('FirstName')">First Name</span>
+                            <span class="sortorder" ng-show="predicate === 'FirstName'" ng-class="{reverse:reverse}"></span>
+                        </div>
+                    </th>
+                    <th>
+                        <div>
+                            <span class="click" ng-click="order('LastName')">Last Name</span>
+                            <span class="sortorder" ng-show="predicate === 'LastName'" ng-class="{reverse:reverse}"></span>
+                        </div>
+                    </th>
+                    <th>
+                        <div>
+                            <span class="click" ng-click="order('Company')">Company</span>
+                            <span class="sortorder" ng-show="predicate === 'Company'" ng-class="{reverse:reverse}"></span>
+                        </div>
+                    </th>
+                    <th>
+                        <div>
+                            <span class="click" ng-click="order('EmailAddress')">Email Address</span>
+                            <span class="sortorder" ng-show="predicate === 'EmailAddress'" ng-class="{reverse:reverse}"></span>
+                        </div>
+                    </th>
+                    <th>
+                        <div>
+                            <span class="click" ng-click="order('PhoneNumber')">Phone Number</span>
+                            <span class="sortorder" ng-show="predicate === 'PhoneNumber'" ng-class="{reverse:reverse}"></span>
+                        </div>
+                    </th>
+                    <th>
+                        <div>
+                            <span class="click" ng-click="order('FullAddress')">Full Address</span>
+                            <span class="sortorder" ng-show="predicate === 'FullAddress'" ng-class="{reverse:reverse}"></span>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="x in customers | parseData | filter:search:strict | orderBy:predicate:reverse | startFrom:(currentPage-1)*entryLimit | limitTo:entryLimit">
+                    <td>{{ x.FirstName }}</td>
+                    <td>{{ x.LastName }}</td>
+                    <td>{{ x.Company }}</td>
+                    <td>{{ x.EmailAddress }}</td>
+                    <td>{{ x.PhoneNumber }}</td>
+                    <td>{{ x.FullAddress }}</td>
+                </tr>
+            </tbody>       
+            
+        </table>
+
+        <pagination page="currentPage" max-size="noOfPages" total-items="totalItems" items-per-page="entryLimit"></pagination>
+    </div>
+
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+    @RenderSection("scripts", required: false)
+
+    <script>
+        var app = angular.module('myApp', ['ui.bootstrap']);
+        app.value("model", { author: "Kirill Nikitin", authorPhoto: "/images/Kirill_Nikitin.jpg" }) // Usually model is for cross-controller data access 
+        app.factory("getData", getData);
+        function getData($http, model) {
+            return {
+                get: function () {
+                    return $http.get("/api/customers")
+                },
+                model: model
+            }
+        }
+        // filter for pagination
+        app.filter('startFrom', function () {
+            return function (input, start) {
+                if (input) {
+                    start = +start;
+                    return input.slice(start);
+                }
+                return [];
+            };
+        });
+        app.filter('parseData', function () {
+            return function (input) {
+                if (!input) {
+                    return;
+                }
+                return input.map(function (i) {
+                    i.FullAddress = [i.Address, i.City, i.State, i.ZipCode].join(', ');
+                    return i
+                });
+            };
+        });
+
+        $(document).ready( function(){
+            var $apples = $('#fruits').find('apples');
+            $('#pick').on('click', function () {
+                setTimeout(function () {
+                    $apples.remove();
+                }, 1000);
+            });
+        });
+        
+        app.controller('testController', ['$scope', '$http', 'model', 'filterFilter', 'getData', function ($scope, $http, model, filterFilter, getData) {          
+            getData
+                .get()
+                .then(function (response) {
+                    model.customers = response.data;
+                    $scope.customers = model.customers;
+
+                    $scope.predicate = 'FirstName';
+                    $scope.reverse = true;
+                    $scope.order = function (predicate) {
+                        $scope.reverse = ($scope.predicate === predicate) ? !$scope.reverse : false;
+                        $scope.predicate = predicate;
+                    };
+
+                    $scope.search = {};
+
+                    $scope.resetFilters = function () {
+                        // needs to be a function or it won't trigger a $watch
+                        $scope.search = {};
+                    };
+            
+                    // pagination controls
+                    $scope.currentPage = 1; //start page
+                    $scope.totalItems = $scope.customers.length; // items in total
+                    $scope.entryLimit = 10; // items per page
+                    $scope.noOfPages = Math.ceil($scope.totalItems / $scope.entryLimit); //number of pages
+
+                    // $watch search to update pagination
+                    $scope.$watch('search.$', function (newVal, oldVal) {
+                        $scope.filtered = filterFilter($scope.customers, newVal);
+                        $scope.totalItems = $scope.filtered.length;
+                        $scope.noOfPages = Math.ceil($scope.totalItems / $scope.entryLimit);
+                        $scope.currentPage = 1;
+                    }, true);
+                })          
+    }]);
+    </script>
+</body>
+</html>
